@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -212,33 +214,38 @@ datePath.MapGet("weekday/{date}", (DateTime date) =>
 });
 
 //#Challenge 5: Simple Collections
+var colorsStore = new List<string> { "red", "blue", "green", "yellow", "purple" };
 var colorsPath = app.MapGroup("/colors");
 colorsPath.MapGet("", () =>
 {
-    var colors = new List<string> { "red", "blue", "green", "yellow", "purple" };
-    return Results.Ok(colors);
+    return Results.Ok(colorsStore);
 });
 
 colorsPath.MapGet("random", () =>
 {
-    var colors = new List<string> { "red", "blue", "green", "yellow", "purple" };
     var random = new Random();
-    var color = colors[random.Next(colors.Count)];
+    var color = colorsStore[random.Next(colorsStore.Count)];
     return Results.Ok(color);
 });
 
 colorsPath.MapGet("search/{letter}", (string letter) =>
 {
-    var colors = new List<string> { "red", "blue", "green", "yellow", "purple" };
-    var result = colors.Where(color => color.StartsWith(letter)).ToList();
+    if (string.IsNullOrEmpty(letter)) return Results.Ok(new List<string>());
+    var result = colorsStore
+        .Where(c => c.StartsWith(letter, StringComparison.OrdinalIgnoreCase))
+        .ToList();
     return Results.Ok(result);
 });
 
 colorsPath.MapPost("add/{color}", (string color) =>
 {
-    var colors = new List<string> { "red", "blue", "green", "yellow", "purple" };
-    colors.Add(color);
-    return Results.Ok(colors);
+    if (string.IsNullOrWhiteSpace(color)) return Results.BadRequest(new { error = "color must not be empty" });
+    
+    if (!colorsStore.Any(c => string.Equals(c, color, StringComparison.OrdinalIgnoreCase)))
+    {
+        colorsStore.Add(color);
+    }
+    return Results.Ok(colorsStore);
 });
 
 //#Challenge 6: Temperature Converter
@@ -265,6 +272,168 @@ tempPath.MapGet("compare/{temp1}/{unit1}/{temp2}/{unit2}", (double temp1, string
 {
     var result = new { temp1 = temp1, unit1 = unit1, temp2 = temp2, unit2 = unit2, difference = Math.Abs(temp1 - temp2) };
     return Results.Ok(result);
+});
+
+//#Challenge 7: Password Generator
+var passwordPath = app.MapGroup("/password");
+passwordPath.MapGet("simple/{length}", (int length) =>
+{
+    bool passwordLengthIsZero = (length <= 0);
+    if (passwordLengthIsZero) return Results.BadRequest(new { error = "length must be a positive integer" });
+
+    const string letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const string digits = "0123456789";
+    string lettersAndDigits = letters + digits;
+
+    var buffer = new char[length];
+    for (int i = 0; i < length; i++)
+    {
+        int randomNumberIndex = RandomNumberGenerator.GetInt32(lettersAndDigits.Length);
+        buffer[i] = lettersAndDigits[randomNumberIndex];
+    }
+
+    var password = new string(buffer);
+    return Results.Ok(new { password });
+});
+
+passwordPath.MapGet("complex/{length}", (int length) =>
+{
+    bool passwordLengthIsZero = (length <= 0);
+    if (passwordLengthIsZero) return Results.BadRequest(new { error = "length must be a positive integer" });
+
+    const string letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const string digits = "0123456789";
+    const string specials = "!@#$%^&*()-_=+[]{};:,.<>?/";
+    string lettersAndDigitsAndSpecials = letters + digits + specials;
+
+    var buffer = new char[length];
+    for (int i = 0; i < length; i++)
+    {
+        int randomNumberIndex = RandomNumberGenerator.GetInt32(lettersAndDigitsAndSpecials.Length);
+        buffer[i] = lettersAndDigitsAndSpecials[randomNumberIndex];
+    }
+
+    var password = new string(buffer);
+    return Results.Ok(new { password });
+});
+
+passwordPath.MapGet("memorable/{words}", (int words) =>
+{
+    bool wordsIsZero = (words <= 0);
+    if (wordsIsZero) return Results.BadRequest(new { error = "please enter a at least one word" });
+
+    string[] wordList = new[]
+    {
+        "blue","river","sun","cloud","tree","mountain","ocean","stone","bright","quiet",
+        "happy","swift","forest","silver","night","gentle","rapid","gold","wind","star"
+    };
+    var parts = new List<string>(words);
+    for (int i = 0; i < words; i++)
+    {
+        int randomNumberIndex = RandomNumberGenerator.GetInt32(wordList.Length);
+        parts.Add(wordList[randomNumberIndex]);
+    }
+    var password = string.Join('-', parts);
+    return Results.Ok(new { password });
+});
+
+passwordPath.MapGet("strength/{password}", (string password) =>
+{
+    if (password is null) return Results.BadRequest(new { error = "please enter a password" });
+
+    bool hasLower = password.Any(char.IsLower);
+    bool hasUpper = password.Any(char.IsUpper);
+    bool hasDigit = password.Any(char.IsDigit);
+    bool hasSpecial = password.Any(ch => !char.IsLetterOrDigit(ch));
+    int lengthScore = password.Length >= 15 ? 2 : password.Length >= 10 ? 1 : 0;
+
+    int varietyScore = 0;
+    if (hasLower) varietyScore++;
+    if (hasUpper) varietyScore++;
+    if (hasDigit) varietyScore++;
+    if (hasSpecial) varietyScore++;
+
+    int score = lengthScore + varietyScore;
+    string strength = score >= 5 ? "Strong" : score >= 3 ? "Medium" : "Weak";
+    return Results.Ok(new { password, strength });
+});
+
+//Challenge 8: Simple Validator
+var validatePath = app.MapGroup("/validate");
+validatePath.MapGet("email/{email}", (string email) =>
+{
+    if (email is null) return Results.BadRequest(new { error = "please enter an email" });
+    
+    bool hasAt = email.Contains("@");
+    bool hasDot = email.Contains(".");
+    bool hasSpace = email.Contains(" ");
+    bool hasSpecial = email.Any(ch => !char.IsLetterOrDigit(ch));
+    
+    if (hasAt && hasDot && !hasSpace && hasSpecial) return Results.Ok(new { email, valid = true });
+    return Results.Ok(new { email, valid = false });
+});
+
+validatePath.MapGet("phone/{phone}", (string phone) =>
+{
+    if (string.IsNullOrWhiteSpace(phone)) return Results.BadRequest(new { error = "please enter a phone number" });
+
+    // Trims white spaces, dashes, and parentheses
+    var trimmed = phone.Trim();
+    var cleaned = Regex.Replace(trimmed, @"[\s\-()]+", "");
+
+    // Check for 10 digits
+    bool valid = Regex.IsMatch(cleaned, @"^[0-9]{10}$");
+    return Results.Ok(new { phone, valid });
+});
+
+validatePath.MapGet("creditcard/{number}", (string number) =>
+{
+    if (string.IsNullOrWhiteSpace(number)) return Results.BadRequest(new { error = "please enter a card number" });
+
+    // Trims white spaces and dashes
+    var digitsOnly = Regex.Replace(number, @"[\s\-]", "");
+    if (!digitsOnly.All(char.IsDigit) || digitsOnly.Length < 15 || digitsOnly.Length > 19) return Results.Ok(new { number, valid = false });
+    
+    // Luhn algorithm is used to check if credit card number structure is correct
+    bool LuhnCheck(string s)
+    {
+        int sum = 0;
+        bool doubleIt = false;
+        for (int i = s.Length - 1; i >= 0; i--)
+        {
+            int d = s[i] - '0';
+            if (doubleIt)
+            {
+                d *= 2;
+                if (d > 9) d -= 9;
+            }
+            sum += d;
+            doubleIt = !doubleIt;
+        }
+        return sum % 10 == 0;
+    }
+
+    bool valid = LuhnCheck(digitsOnly);
+    return Results.Ok(new { number, valid });
+});
+
+validatePath.MapGet("strongpassword/{password}", (string password) =>
+{
+    if (password is null) return Results.BadRequest(new { error = "please enter a password" });
+
+    bool hasLower = password.Any(char.IsLower);
+    bool hasUpper = password.Any(char.IsUpper);
+    bool hasDigit = password.Any(char.IsDigit);
+    bool hasSpecial = password.Any(ch => !char.IsLetterOrDigit(ch));
+    bool minLength = password.Length >= 15;
+
+    bool isStrong = minLength && hasLower && hasUpper && hasDigit && hasSpecial;
+    return Results.Ok(new
+    {
+        password,
+        isStrong,
+        rules = new { minLength, hasLower, hasUpper, hasDigit, hasSpecial }
+    });
 });
 
 app.Run();

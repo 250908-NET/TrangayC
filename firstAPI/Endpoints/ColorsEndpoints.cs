@@ -6,7 +6,6 @@ namespace firstAPI.Endpoints;
 
 public static class ColorsEndpoints
 {
-    // Persistent in-memory store for app lifetime
     private static readonly List<string> ColorsStore = new() { "red", "blue", "green", "yellow", "purple" };
 
     public static IEndpointRouteBuilder MapColorsEndpoints(this IEndpointRouteBuilder app)

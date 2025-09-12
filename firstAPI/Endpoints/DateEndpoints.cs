@@ -13,7 +13,12 @@ public static class DateEndpoints
         datePath.MapGet("today", () =>
         {
             var today = DateTime.Now;
-            return Results.Ok(new { today = today.ToString("yyyy-MM-dd") });
+            return Results.Ok(new
+            {
+                iso = today.ToString("yyyy-MM-dd"),
+                us = today.ToString("MM/dd/yyyy"),
+                eu = today.ToString("dd/MM/yyyy")
+            });
         });
 
         datePath.MapGet("age/{birthYear}", (int birthYear) =>

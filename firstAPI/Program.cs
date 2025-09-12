@@ -25,5 +25,7 @@ app.MapTempEndpoints();
 app.MapPasswordEndpoints();
 app.MapValidateEndpoints();
 app.MapConvertEndPoints();
+app.MapForecastEndPoints();
+app.MapGameEndPoints();
 
 app.Run();

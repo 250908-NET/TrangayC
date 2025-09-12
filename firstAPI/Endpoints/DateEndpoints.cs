@@ -37,7 +37,9 @@ public static class DateEndpoints
         datePath.MapGet("weekday/{date}", (DateTime date) =>
         {
             var weekday = date.DayOfWeek;
-            return Results.Ok(new { weekday });
+            var weekdayName = weekday.ToString();
+            var weekdayNumber = (int)weekday; // Sunday=0, Monday=1, ...
+            return Results.Ok(new { weekdayName, weekdayNumber });
         });
 
         return app;

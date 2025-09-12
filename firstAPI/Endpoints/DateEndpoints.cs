@@ -33,7 +33,7 @@ public static class DateEndpoints
             var daysBetween = date2 - date1;
             return Results.Ok(new { daysBetween = daysBetween.Days });
         });
-
+        //Example date: 2025-09-12
         datePath.MapGet("weekday/{date}", (DateTime date) =>
         {
             var weekday = date.DayOfWeek;

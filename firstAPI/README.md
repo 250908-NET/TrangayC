@@ -1,6 +1,6 @@
 # firstAPI
 
-A .NET 9 Minimal API project showcasing small, focused endpoints for learning and quick experimentation. It includes calculators, text utilities, number games, dates, in-memory collections, temperature conversions, password utilities, simple validators, and unit conversions powered by UnitsNet.
+A .NET 9 Minimal API project showcasing small, focused endpoints for learning C# and .NET.
 
 ## Tech Stack
 
@@ -21,7 +21,9 @@ firstAPI/
 │  ├─ TempEndpoints.cs              # /temp
 │  ├─ PasswordEndpoints.cs          # /password
 │  ├─ ValidateEndpoints.cs          # /validate
-│  └─ ConvertEndPoints.cs           # /convert 
+│  ├─ ConvertEndPoints.cs           # /convert
+│  ├─ ForecastEndPoints.cs          # /forecast
+│  └─ GameEndPoints.cs              # /game
 ├─ Properties/
 │  └─ launchSettings.json
 ├─ firstAPI.csproj
@@ -72,7 +74,7 @@ Example:
 - `GET http://localhost:5063/numbers/prime/13`
 
 ### Date — `/date`
-- `GET /date/today` (yyyy-MM-dd)
+- `GET /date/today` 
 - `GET /date/age/{birthYear}`
 - `GET /date/daysbetween/{date1}/{date2}`
 - `GET /date/weekday/{date}`
@@ -127,3 +129,28 @@ Examples:
 - `GET http://localhost:5063/convert/weight/10/lb/kg`
 - `GET http://localhost:5063/convert/volume/3/gal/l`
 - `GET http://localhost:5063/convert/list-units/length`
+
+### Forecast — `/forecast`
+- `GET /forecast` — list all saved forecasts
+- `GET /forecast/{date}` — get one by date (yyyy-MM-dd)
+- `POST /forecast` — create/update from JSON body
+  - Body: `{ "date": "2025-09-12", "temperature": 21, "summary": "Sunny" }`
+- `DELETE /forecast/{date}` — remove by date
+
+Examples:
+- `POST http://localhost:5063/forecast` with body above
+- `GET http://localhost:5063/forecast/2025-09-12`
+ 
+### Game — `/game`
+- `POST /game/guess-number` — JSON body `{ "guess": 42 }` compares against a per-session random number (1–100)
+- `POST /game/guess-number/reset` — regenerates the session target
+- `GET /game/rock-paper-scissors/{choice}` — play RPS against the computer (`rock|paper|scissors`)
+- `GET /game/dice/{sides:int}/{count:int}` — roll N dice with X sides (sides >= 4, 1 <= count <= 100)
+- `GET /game/coin-flip/{count:int}` — flip coins (1–100)
+
+Examples:
+- `POST http://localhost:5063/game/guess-number` with body `{ "guess": 50 }` → `{ "guess": 50, "hint": "higher" }`
+- `POST http://localhost:5063/game/guess-number/reset`
+- `GET http://localhost:5063/game/rock-paper-scissors/rock` → `{ "userChoice": "rock", "computerChoice": "paper", "outcome": "lose" }`
+- `GET http://localhost:5063/game/dice/6/3` → `{ "sides": 6, "count": 3, "rolls": [2,5,3], "total": 10, "average": 3.33 }`
+- `GET http://localhost:5063/game/coin-flip/10` → `{ "count": 10, "headCounter": 6, "tailCounter": 4, "flips": ["heads", "tails", ...] }`

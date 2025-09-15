@@ -9,13 +9,13 @@ public enum PriorityLevel
     Critical
 }
 
-public class Task
+public class TaskItem
 {
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
     [Required] 
     [MaxLength(100)] 
-    public string Title { get; set; }
+    public string Title { get; set; } = "Empty title";
     [MaxLength(500)]
     public string? Description { get; set; }
     public bool IsCompleted { get; set; } = false;
@@ -24,7 +24,9 @@ public class Task
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
-    public Task(int id, string title, string description, bool isCompleted, PriorityLevel priority, DateTime dueDate, DateTime createdAt, DateTime updatedAt) {
+    public TaskItem() { }
+
+    public TaskItem(int id, string title, string description, bool isCompleted, PriorityLevel priority, DateTime dueDate, DateTime createdAt, DateTime updatedAt) {
         this.Id = id;
         this.Title = title;
         this.Description = description;

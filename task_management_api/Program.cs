@@ -22,16 +22,22 @@ var apiPath = app.MapGroup("api");
 apiPath.MapGet("/tasks", (bool? isCompleted, PriorityLevel? priority, DateTime? dueBefore) => 
 {
     var allTasks = service.FilterTasks(taskList, isCompleted, priority, dueBefore);
-    return allTasks;
+    var body = new { success = true, tasks = allTasks, message = "Operation completed successfully" };
+    return Results.Ok(body);
 });
 
 //GET /api/tasks/{id} - Get specific task by ID
 apiPath.MapGet("/tasks/{id:int}", (int id) =>
 {
     var task = taskList.FirstOrDefault(t => t.Id == id);
-    if (task == null) return Results.NotFound();
-
-    return Results.Ok(task);
+    if (task == null) 
+    {
+        var errorMessage = $"Task does not exist for provided id: {id}";
+        var errorBody = new { success = false, error = errorMessage, message = "Operation failed" };
+        return Results.NotFound(errorBody);
+    }
+    var body = new { success = true, data = task, message = "Operation completed successfully" };
+    return Results.Ok(body);
 });
 
 //POST /api/tasks - Create new task
@@ -39,7 +45,7 @@ apiPath.MapGet("/tasks/{id:int}", (int id) =>
 Example body:
 {
   "title": "Finish API Documentation",
-  "description": "Complete the Swagger docs for all endpoints",
+  "description": "Review API documentation",
   "isCompleted": false,
   "priority": 1,
   "dueDate": "2025-09-30T17:00:00Z"
@@ -54,23 +60,42 @@ apiPath.MapPost("/tasks", ([FromBody] TaskItem task) =>
         task.Id = nextId;
     }
 
-    // Basic validation for required fields
-    if (string.IsNullOrWhiteSpace(task.Title)) return Results.BadRequest("Title is required.");
-    
-    task.CreatedAt = task.CreatedAt == default ? DateTime.Now : task.CreatedAt;
+    // Validate using Data Annotations
+    var (isValid, validationResults) = ModelValidationHelper.Validate(task);
+    if (!isValid)
+    {
+        var errorMessages = ModelValidationHelper.GetErrorMessages(validationResults);
+        var errorBody = new { success = false, errors = errorMessages, message = "Operation failed" };
+        return Results.BadRequest(errorBody);
+    }
+
+    task.CreatedAt = DateTime.Now;
     task.UpdatedAt = DateTime.Now;
 
     taskList.Add(task);
-    return Results.Created($"/api/tasks/{task.Id}", task);
+    var body = new { success = true, data = task, message = "Operation completed successfully" };
+    return Results.Created($"/api/tasks/{task.Id}", body);
 });
 
 //PUT /api/tasks/{id} - Update existing task
 apiPath.MapPut("/tasks/{id:int}", (int id, TaskItem updatedTask) =>
 {
     var task = taskList.FirstOrDefault(t => t.Id == id);
-    if (task is null) return Results.NotFound();
+    if (task is null) 
+    {
+        var errorMessage = $"Task does not exist for provided id: {id}";
+        var errorBody = new { success = false, error = errorMessage, message = "Operation failed" };
+        return Results.NotFound(errorBody);
+    }
 
-    if (string.IsNullOrWhiteSpace(updatedTask.Title)) return Results.BadRequest("Title is required.");
+    // Validate using Data Annotations
+    var (isValid, validationResults) = ModelValidationHelper.Validate(updatedTask);
+    if (!isValid)
+    {
+        var errorMessages = ModelValidationHelper.GetErrorMessages(validationResults);
+        var errorBody = new { success = false, errors = errorMessages, message = "Operation failed" };
+        return Results.BadRequest(errorBody);
+    }
 
     task.Title = updatedTask.Title;
     task.Description = updatedTask.Description;
@@ -79,17 +104,25 @@ apiPath.MapPut("/tasks/{id:int}", (int id, TaskItem updatedTask) =>
     task.DueDate = updatedTask.DueDate;
     task.UpdatedAt = DateTime.Now;
 
-    return Results.Ok(task);
+    var body = new { success = true, data = task, message = "Operation completed successfully" };
+    return Results.Ok(body);
 });
 
 //DELETE /api/tasks/{id} - Delete task
 apiPath.MapDelete("/tasks/{id:int}", (int id) =>
 {
     var task = taskList.FirstOrDefault(t => t.Id == id);
-    if (task is null) return Results.NotFound();
+    
+    if (task is null) 
+    {
+        var errorMessage = $"Task does not exist for provided id: {id}";
+        var errorBody = new { success = false, error = errorMessage, message = "Operation failed" };
+        return Results.NotFound(errorBody);
+    }
 
     taskList.Remove(task);
-    return Results.NoContent();
+    var body = new { success = true, data = task, message = "Operation completed successfully" };    
+    return Results.Ok(body);
 });
 
 app.Run();

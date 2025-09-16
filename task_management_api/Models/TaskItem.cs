@@ -13,10 +13,10 @@ public class TaskItem
 {
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
-    [Required (ErrorMessage = "Title is required.")]
-    [MaxLength(100, ErrorMessage = "Title must not exceed 100 characters.")] 
+    [Required (ErrorMessage = "Title is required")]
+    [StringLength(100, ErrorMessage = "Title must not exceed 100 characters")] 
     public required string Title { get; set; }
-    [MaxLength(500, ErrorMessage = "Description must not exceed 500 characters.")]
+    [StringLength(500, ErrorMessage = "Description must not exceed 500 characters")]
     public string? Description { get; set; }
     public bool IsCompleted { get; set; } = false;
     [EnumDataType(typeof(PriorityLevel))]

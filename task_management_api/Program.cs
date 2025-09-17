@@ -22,7 +22,7 @@ var apiPath = app.MapGroup("api");
 apiPath.MapGet("/tasks", (bool? isCompleted, PriorityLevel? priority, DateTime? dueBefore) => 
 {
     var allTasks = service.FilterTasks(taskList, isCompleted, priority, dueBefore);
-    var body = new { success = true, tasks = allTasks, message = "Operation completed successfully" };
+    var body = new { success = true, data = allTasks, message = "Operation completed successfully" };
     return Results.Ok(body);
 });
 
@@ -126,3 +126,5 @@ apiPath.MapDelete("/tasks/{id:int}", (int id) =>
 });
 
 app.Run();
+
+public partial class Program { }

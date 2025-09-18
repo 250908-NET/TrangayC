@@ -1,8 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 ITaskItemService service = new TaskItemService();
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+
+// Configure Serilog for structured logging
+builder.Host.UseSerilog((ctx, services, lc) => lc
+    .MinimumLevel.Information()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day));
 
 var app = builder.Build();  
 
@@ -13,6 +21,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+// Use custom request logging middleware (replaces Serilog's default request logging)
+app.UseMiddleware<RequestLoggingMiddleware>();
 
 List<TaskItem> taskList = new List<TaskItem>();
 

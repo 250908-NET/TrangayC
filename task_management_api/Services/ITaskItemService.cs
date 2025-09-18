@@ -5,4 +5,6 @@ public interface ITaskItemService
         bool? isCompleted = null,
         PriorityLevel? priority = null,
         DateTime? dueBefore = null);
+
+    IEnumerable<TaskItem> Sort(IEnumerable<TaskItem> tasks, string? sortBy);
 }

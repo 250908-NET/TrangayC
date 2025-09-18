@@ -25,4 +25,17 @@ public class TaskItemService : ITaskItemService
 
         return query.ToList();
     }
+
+    public IEnumerable<TaskItem> Sort(IEnumerable<TaskItem> tasks, string? sortBy)
+    {
+        if (tasks is null) return Array.Empty<TaskItem>();
+
+        return (sortBy?.ToLowerInvariant()) switch
+        {
+            "duedate" => tasks.OrderBy(t => t.DueDate ?? DateTime.MaxValue),
+            "priority" => tasks.OrderBy(t => t.Priority),
+            "createdat" => tasks.OrderBy(t => t.CreatedAt),
+            _ => tasks.OrderBy(t => t.CreatedAt)
+        };
+    }
 }

@@ -17,12 +17,16 @@ app.UseHttpsRedirection();
 List<TaskItem> taskList = new List<TaskItem>();
 
 var apiPath = app.MapGroup("api");
-//GET /api/tasks - Get all tasks with optional filtering
-//Query parameters: IsCompleted, Priority, DueBefore
-apiPath.MapGet("/tasks", (bool? isCompleted, PriorityLevel? priority, DateTime? dueBefore) => 
+//GET /api/tasks - Get all tasks with optional filtering and sorting
+//Query parameters: isCompleted, priority, dueBefore, sortBy (createdAt|dueDate|priority)
+//Example body: {"title": "Finish Documentation", "dueDate": "2025-09-30T17:00:00Z"}
+//Example query for sorting: /api/tasks?sortBy=dueDate
+//Example query for filtering: /api/tasks?isCompleted=false&dueBefore=2025-09-30
+apiPath.MapGet("/tasks", (bool? isCompleted, PriorityLevel? priority, DateTime? dueBefore, string? sortBy) => 
 {
-    var allTasks = service.FilterTasks(taskList, isCompleted, priority, dueBefore);
-    var body = new { success = true, data = allTasks, message = "Operation completed successfully" };
+    var filteredTasks = service.FilterTasks(taskList, isCompleted, priority, dueBefore);
+    var sortedTasks = service.Sort(filteredTasks, sortBy);
+    var body = new { success = true, data = sortedTasks, message = "Operation completed successfully" };
     return Results.Ok(body);
 });
 
@@ -44,8 +48,8 @@ apiPath.MapGet("/tasks/{id:int}", (int id) =>
 /*
 Example body:
 {
-  "title": "Finish API Documentation",
-  "description": "Review API documentation",
+  "title": "Finish Documentation",
+  "description": "Review Documentation",
   "isCompleted": false,
   "priority": 1,
   "dueDate": "2025-09-30T17:00:00Z"

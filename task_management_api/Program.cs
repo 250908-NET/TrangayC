@@ -22,9 +22,10 @@ var apiPath = app.MapGroup("api");
 //Example body: {"title": "Finish Documentation", "dueDate": "2025-09-30T17:00:00Z"}
 //Example query for sorting: /api/tasks?sortBy=dueDate
 //Example query for filtering: /api/tasks?isCompleted=false&dueBefore=2025-09-30
-apiPath.MapGet("/tasks", (bool? isCompleted, PriorityLevel? priority, DateTime? dueBefore, string? sortBy) => 
+//Example query for filtering by title: /api/tasks?title=Documentation
+apiPath.MapGet("/tasks", (bool? isCompleted, PriorityLevel? priority, DateTime? dueBefore, string? title, string? description, string? sortBy) => 
 {
-    var filteredTasks = service.FilterTasks(taskList, isCompleted, priority, dueBefore);
+    var filteredTasks = service.FilterTasks(taskList, isCompleted, priority, dueBefore, title, description);
     var sortedTasks = service.Sort(filteredTasks, sortBy);
     var body = new { success = true, data = sortedTasks, message = "Operation completed successfully" };
     return Results.Ok(body);

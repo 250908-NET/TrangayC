@@ -4,7 +4,9 @@ public class TaskItemService : ITaskItemService
         IEnumerable<TaskItem> tasks,
         bool? isCompleted = null,
         PriorityLevel? priority = null,
-        DateTime? dueBefore = null)
+        DateTime? dueBefore = null,
+        string? title = null,
+        string? description = null)
     {
         var query = tasks;
 
@@ -21,6 +23,16 @@ public class TaskItemService : ITaskItemService
         if (dueBefore is not null)
         {
             query = query.Where(task => task.DueDate is not null && task.DueDate < dueBefore.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            query = query.Where(task => task.Title?.Contains(title, StringComparison.OrdinalIgnoreCase) == true);
+        }
+
+        if (!string.IsNullOrWhiteSpace(description))
+        {
+            query = query.Where(task => task.Description?.Contains(description, StringComparison.OrdinalIgnoreCase) == true);
         }
 
         return query.ToList();

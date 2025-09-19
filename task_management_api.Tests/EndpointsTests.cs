@@ -271,4 +271,35 @@ public class EndpointsTests
         responseJson.GetProperty("data").GetProperty("title").GetString().Should().Be("Delete");
         responseJson.GetProperty("message").GetString().Should().Be("Operation completed successfully");
     }
+
+    [Fact]
+    public async Task GetStatistics_ReturnsOk_WithCorrectCountsAndGrouping()
+    {
+        // Arrange
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        // Create tasks: 3 total; 1 completed; 1 overdue
+        await client.PostAsJsonAsync("/api/tasks", new { title = "A", isCompleted = false, priority = 0, dueDate = DateTime.Now.AddDays(3) }); // Low
+        await client.PostAsJsonAsync("/api/tasks", new { title = "B", isCompleted = true, priority = 2, dueDate = DateTime.Now.AddDays(1) }); // High
+        await client.PostAsJsonAsync("/api/tasks", new { title = "C", isCompleted = false, priority = 2, dueDate = DateTime.Now.AddDays(-1) }); // High overdue
+
+        // Act
+        var response = await client.GetAsync("/api/tasks/statistics");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var responseJson = await response.Content.ReadFromJsonAsync<JsonElement>();
+        responseJson.GetProperty("success").GetBoolean().Should().BeTrue();
+        var data = responseJson.GetProperty("data");
+        data.GetProperty("totalTasks").GetInt32().Should().Be(3);
+        data.GetProperty("completedTasks").GetInt32().Should().Be(1);
+        data.GetProperty("overdueTasks").GetInt32().Should().Be(1);
+
+        var tasksByPriority = data.GetProperty("tasksByPriority").EnumerateArray().ToArray();
+        var low = tasksByPriority.Single(x => x.GetProperty("priority").GetString() == "Low");
+        low.GetProperty("count").GetInt32().Should().Be(1);
+        var high = tasksByPriority.Single(x => x.GetProperty("priority").GetString() == "High");
+        high.GetProperty("count").GetInt32().Should().Be(2);
+    }
 }

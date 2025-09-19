@@ -241,9 +241,43 @@ Expected 404 Not Found:
 }
 ```
 
+### 6) GET /api/tasks/statistics
+Return aggregate statistics for tasks.
+
+Example
+```json
+GET /api/tasks/statistics
+```
+Expected 200 OK response body:
+```json
+{
+  "success": true,
+  "data": {
+    "totalTasks": 10,
+    "completedTasks": 4,
+    "overdueTasks": 2,
+    "tasksByPriority": [
+      { "priority": "Low", "count": 2 },
+      { "priority": "Medium", "count": 3 },
+      { "priority": "High", "count": 4 },
+      { "priority": "Critical", "count": 1 }
+    ]
+  },
+  "message": "Operation completed successfully"
+}
+```
+
 ## Testing Tips
 - Use any REST client (e.g., Postman, Thunder Client).
 - Since the data store is in-memory (`List<TaskItem>` in `Program.cs`), data resets when the program restarts.
+
+## Running Tests
+This repository includes an xUnit test project (`task_management_api.Tests/`)
+
+Run all tests from the solution root:
+```bash
+dotnet test
+```
 
 ## Project Structure
 ```

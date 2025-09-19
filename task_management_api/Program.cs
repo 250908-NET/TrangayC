@@ -29,7 +29,6 @@ List<TaskItem> taskList = new List<TaskItem>();
 var apiPath = app.MapGroup("api");
 //GET /api/tasks - Get all tasks with optional filtering and sorting
 //Query parameters: isCompleted, priority, dueBefore, sortBy (createdAt|dueDate|priority)
-//Example body: {"title": "Finish Documentation", "dueDate": "2025-09-30T17:00:00Z"}
 //Example query for sorting: /api/tasks?sortBy=dueDate
 //Example query for filtering: /api/tasks?isCompleted=false&dueBefore=2025-09-30
 //Example query for filtering by title: /api/tasks?title=Documentation
@@ -63,7 +62,7 @@ Example body:
   "description": "Review Documentation",
   "isCompleted": false,
   "priority": 1,
-  "dueDate": "2025-09-30T17:00:00Z"
+  "dueDate": "2025-09-30"
 }
 */
 apiPath.MapPost("/tasks", ([FromBody] TaskItem task) => 

@@ -139,6 +139,32 @@ apiPath.MapDelete("/tasks/{id:int}", (int id) =>
     return Results.Ok(body);
 });
 
+//GET /api/tasks/statistics - Get task statistics
+apiPath.MapGet("/tasks/statistics", () =>
+{
+    var currentTime = DateTime.Now;
+    var totalTasks = taskList.Count;
+    var completedTasks = taskList.Count(t => t.IsCompleted);
+    var overdueTasks = taskList.Count(t => t.DueDate.HasValue && t.DueDate < currentTime && !t.IsCompleted);
+
+    var byPriority = taskList
+        .GroupBy(task => task.Priority)
+        .OrderBy(taskPriority => taskPriority.Key)
+        .Select(taskPriority => new { priority = taskPriority.Key.ToString(), count = taskPriority.Count() })
+        .ToList();
+
+    var statisticsBody = new
+    {
+        totalTasks = totalTasks,
+        completedTasks = completedTasks,
+        overdueTasks = overdueTasks,
+        tasksByPriority = byPriority
+    };
+
+    var body = new { success = true, data = statisticsBody, message = "Operation completed successfully" };
+    return Results.Ok(body);
+});
+
 app.Run();
 
 public partial class Program { }

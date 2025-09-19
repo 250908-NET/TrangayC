@@ -185,7 +185,6 @@ Example
 ```json
 PUT /api/tasks/3
 {
-  "id": 3,
   "title": "Finish Documentation - Updated",
   "description": "Review Documentation - Updated",
   "isCompleted": true,

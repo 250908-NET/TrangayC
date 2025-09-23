@@ -1,0 +1,6 @@
+@CareLink.WebApi_HostAddress = http://localhost:5140
+
+GET {{CareLink.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

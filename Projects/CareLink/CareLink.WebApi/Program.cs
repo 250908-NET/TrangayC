@@ -1,4 +1,5 @@
 using CareLink.WebApi.Data;
+using CareLink.WebApi.Helpers;
 using CareLink.WebApi.Repositories;
 using CareLink.WebApi.Repositories.Interfaces;
 using CareLink.WebApi.Services;
@@ -37,94 +38,78 @@ app.UseHttpsRedirection();
 
 var doctors = app.MapGroup("/api/doctors");
 
-doctors.MapGet("", async (CareLinkDbContext db) =>
+doctors.MapGet("", async (IDoctorService service) =>
 {
-    var list = await db.Doctors
-        .Include(d => d.DoctorPatients)
-            .ThenInclude(dp => dp.Patient)
-        .Select(d => new
-        {
-            d.Id,
-            d.FirstName,
-            d.LastName,
-            d.Specialty,
-            patients = d.DoctorPatients
-                .Where(dp => dp.Patient != null)
-                .Select(dp => new
-                {
-                    dp.Patient!.Id,
-                    dp.Patient!.FirstName,
-                    dp.Patient!.LastName
-                }).ToList()
-        })
-        .ToListAsync();
-    return Results.Ok(list);
+    var list = await service.GetAllAsync();
+    return Results.Ok(ApiResponseHelper.Success(list, "Doctors retrieved successfully"));
 });
 
 doctors.MapGet("/{id:int}", async (int id, IDoctorService service) =>
 {
     var item = await service.GetByIdAsync(id);
-    return item is null ? Results.NotFound() : Results.Ok(item);
+    return item is null
+        ? Results.NotFound(ApiResponseHelper.Error("Doctor not found"))
+        : Results.Ok(ApiResponseHelper.Success(item, "Doctor retrieved successfully"));
 });
 
 doctors.MapPost("", async (Doctor doctor, IDoctorService service) =>
 {
-    if (string.IsNullOrWhiteSpace(doctor.FirstName) || string.IsNullOrWhiteSpace(doctor.LastName) || string.IsNullOrWhiteSpace(doctor.Specialty))
-        return Results.BadRequest("FirstName, LastName, and Specialty are required.");
+    var (isValid, errors) = BasicModelValidator.Validate(doctor);
+    if (!isValid)
+        return Results.BadRequest(ApiResponseHelper.Error(errors));
+
     var created = await service.CreateAsync(doctor);
-    return Results.Created($"/api/doctors/{created.Id}", created);
+    return Results.Created($"/api/doctors/{created.Id}", ApiResponseHelper.Success(created, "Doctor created successfully"));
 });
 
 doctors.MapDelete("/{id:int}", async (int id, IDoctorService service) =>
 {
+    var existing = await service.GetByIdAsync(id);
+    if (existing is null)
+        return Results.NotFound(ApiResponseHelper.Error("Doctor not found"));
+
     var deleted = await service.DeleteAsync(id);
-    return deleted ? Results.NoContent() : Results.NotFound();
+    return deleted
+        ? Results.Ok(ApiResponseHelper.Success(existing, "Doctor deleted successfully"))
+        : Results.BadRequest(ApiResponseHelper.Error("Failed to delete doctor"));
 });
 
 var patients = app.MapGroup("/api/patients");
 
-patients.MapGet("", async (CareLinkDbContext db) =>
+patients.MapGet("", async (IPatientService service) =>
 {
-    var list = await db.Patients
-        .Include(p => p.DoctorPatients)
-            .ThenInclude(dp => dp.Doctor)
-        .Select(p => new
-        {
-            p.Id,
-            p.FirstName,
-            p.LastName,
-            doctors = p.DoctorPatients
-                .Where(dp => dp.Doctor != null)
-                .Select(dp => new
-                {
-                    dp.Doctor!.Id,
-                    dp.Doctor!.FirstName,
-                    dp.Doctor!.LastName,
-                    dp.Doctor!.Specialty
-                }).ToList()
-        })
-        .ToListAsync();
-    return Results.Ok(list);
+    var list = await service.GetAllAsync();
+    return Results.Ok(ApiResponseHelper.Success(list, "Patients retrieved successfully"));
 });
 
 patients.MapGet("/{id:int}", async (int id, IPatientService service) =>
 {
     var item = await service.GetByIdAsync(id);
-    return item is null ? Results.NotFound() : Results.Ok(item);
+    return item is null
+        ? Results.NotFound(ApiResponseHelper.Error("Patient not found"))
+        : Results.Ok(ApiResponseHelper.Success(item, "Patient retrieved successfully"));
 });
 
 patients.MapPost("", async (Patient patient, IPatientService service) =>
 {
-    if (string.IsNullOrWhiteSpace(patient.FirstName) || string.IsNullOrWhiteSpace(patient.LastName))
-        return Results.BadRequest("FirstName and LastName are required.");
+    var (isValid, errors) = BasicModelValidator.Validate(patient);
+    if (!isValid)
+        return Results.BadRequest(ApiResponseHelper.Error(errors));
+
     var created = await service.CreateAsync(patient);
-    return Results.Created($"/api/patients/{created.Id}", created);
+    return Results.Created($"/api/patients/{created.Id}", ApiResponseHelper.Success(created, "Patient created successfully"));
 });
 
 patients.MapDelete("/{id:int}", async (int id, IPatientService service) =>
 {
+    var existing = await service.GetByIdAsync(id);
+    if (existing is null)
+        return Results.NotFound(ApiResponseHelper.Error("Patient not found"));
+
     var deleted = await service.DeleteAsync(id);
-    return deleted ? Results.NoContent() : Results.NotFound();
+    return deleted
+        ? Results.Ok(ApiResponseHelper.Success(existing, "Patient deleted successfully"))
+        : Results.BadRequest(ApiResponseHelper.Error("Failed to delete patient"));
 });
 
 // Link a patient to a doctor
@@ -132,15 +117,21 @@ doctors.MapPost("/{doctorId:int}/patients/{patientId:int}", async (int doctorId,
 {
     var doctor = await db.Doctors.FindAsync(doctorId);
     var patient = await db.Patients.FindAsync(patientId);
-    if (doctor is null || patient is null) return Results.NotFound();
+    if (doctor is null || patient is null) return Results.NotFound(ApiResponseHelper.Error("Doctor or patient not found"));
 
     var exists = await db.Set<DoctorPatient>()
         .AnyAsync(dp => dp.DoctorId == doctorId && dp.PatientId == patientId);
-    if (exists) return Results.NoContent();
+    if (exists)
+    {
+        var linkData = new { doctorId, patientId };
+        return Results.Ok(ApiResponseHelper.Success(linkData, "Patient already linked to doctor"));
+    }
 
-    db.Set<DoctorPatient>().Add(new DoctorPatient { DoctorId = doctorId, PatientId = patientId });
+    var link = new DoctorPatient { DoctorId = doctorId, PatientId = patientId };
+    db.Set<DoctorPatient>().Add(link);
     await db.SaveChangesAsync();
-    return Results.NoContent();
+    var createdData = new { doctorId, patientId };
+    return Results.Created($"/api/doctors/{doctorId}/patients/{patientId}", ApiResponseHelper.Success(createdData, "Patient linked to doctor successfully"));
 });
 
 // Unlink a patient from a doctor
@@ -148,11 +139,12 @@ doctors.MapDelete("/{doctorId:int}/patients/{patientId:int}", async (int doctorI
 {
     var link = await db.Set<DoctorPatient>()
         .FirstOrDefaultAsync(dp => dp.DoctorId == doctorId && dp.PatientId == patientId);
-    if (link is null) return Results.NotFound();
+    if (link is null) return Results.NotFound(ApiResponseHelper.Error("Doctor to patient link not found"));
 
     db.Remove(link);
     await db.SaveChangesAsync();
-    return Results.NoContent();
+    var deletedData = new { doctorId, patientId };
+    return Results.Ok(ApiResponseHelper.Success(deletedData, "Patient unlinked from doctor successfully"));
 });
 
 // Mirror routes under patients
@@ -160,26 +152,33 @@ patients.MapPost("/{patientId:int}/doctors/{doctorId:int}", async (int patientId
 {
     var doctor = await db.Doctors.FindAsync(doctorId);
     var patient = await db.Patients.FindAsync(patientId);
-    if (doctor is null || patient is null) return Results.NotFound();
+    if (doctor is null || patient is null) return Results.NotFound(ApiResponseHelper.Error("Doctor or patient not found"));
 
     var exists = await db.Set<DoctorPatient>()
         .AnyAsync(dp => dp.DoctorId == doctorId && dp.PatientId == patientId);
-    if (exists) return Results.NoContent();
+    if (exists)
+    {
+        var linkData = new { doctorId, patientId };
+        return Results.Ok(ApiResponseHelper.Success(linkData, "Doctor already linked to patient"));
+    }
 
-    db.Set<DoctorPatient>().Add(new DoctorPatient { DoctorId = doctorId, PatientId = patientId });
+    var link = new DoctorPatient { DoctorId = doctorId, PatientId = patientId };
+    db.Set<DoctorPatient>().Add(link);
     await db.SaveChangesAsync();
-    return Results.NoContent();
+    var createdData = new { doctorId, patientId };
+    return Results.Created($"/api/patients/{patientId}/doctors/{doctorId}", ApiResponseHelper.Success(createdData, "Doctor linked to patient successfully"));
 });
 
 patients.MapDelete("/{patientId:int}/doctors/{doctorId:int}", async (int patientId, int doctorId, CareLinkDbContext db) =>
 {
     var link = await db.Set<DoctorPatient>()
         .FirstOrDefaultAsync(dp => dp.DoctorId == doctorId && dp.PatientId == patientId);
-    if (link is null) return Results.NotFound();
+    if (link is null) return Results.NotFound(ApiResponseHelper.Error("Patient to doctor link not found"));
 
     db.Remove(link);
     await db.SaveChangesAsync();
-    return Results.NoContent();
+    var deletedData = new { doctorId, patientId };
+    return Results.Ok(ApiResponseHelper.Success(deletedData, "Doctor unlinked from patient successfully"));
 });
 
 app.Run();

@@ -15,7 +15,10 @@ public class DoctorRepository(CareLinkDbContext db) : IDoctorRepository
     }
 
     public Task<List<Doctor>> GetAllAsync()
-        => db.Doctors.ToListAsync();
+        => db.Doctors
+            .Include(d => d.DoctorPatients)
+                .ThenInclude(dp => dp.Patient)
+            .ToListAsync();
 
     public Task<Doctor?> GetByIdAsync(int id)
         => db.Doctors.FirstOrDefaultAsync(d => d.Id == id);

@@ -8,12 +8,12 @@ public class Patient
     [Key]
     public int Id { get; set; }
 
-    [Required]
-    [StringLength(100)]
+    [Required(ErrorMessage = "First name is required.")]
+    [StringLength(100, ErrorMessage = "First name must be between 1 and 100 characters.")]
     public string FirstName { get; set; } = string.Empty;
 
-    [Required]
-    [StringLength(100)]
+    [Required(ErrorMessage = "Last name is required.")]
+    [StringLength(100, ErrorMessage = "Last name must be between 1 and 100 characters.")]
     public string LastName { get; set; } = string.Empty;
 
     public List<DoctorPatient> DoctorPatients { get; set; } = new List<DoctorPatient>();

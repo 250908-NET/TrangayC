@@ -5,35 +5,56 @@ using CareLink.WebApi.Dtos;
 
 namespace CareLink.WebApi.Services;
 
+/// <summary>
+/// Provides application-level operations for the doctor-patient relationship (link/unlink).
+/// Relies on repositories for data access and returns slim DTOs for API responses.
+/// </summary>
 public class DoctorPatientService(
     IDoctorRepository doctorRepo,
     IPatientRepository patientRepo,
     IDoctorPatientRepository linkRepo) : IDoctorPatientService
 {
+    /// <summary>
+    /// Links an existing patient to an existing doctor.
+    /// </summary>
+    /// <param name="doctorId">The doctor identifier.</param>
+    /// <param name="patientId">The patient identifier.</param>
+    /// <returns>
+    /// A tuple indicating whether both entities were found (<c>found</c>), whether the link already existed
+    /// (<c>alreadyLinked</c>), and the projected doctor and patient DTOs.
+    /// </returns>
     public async Task<(bool found, bool alreadyLinked, DoctorDto? doctor, PatientDto? patient)> LinkPatientAsync(int doctorId, int patientId)
     {
-        var doctor = await doctorRepo.GetByIdAsync(doctorId);
-        var patient = await patientRepo.GetByIdAsync(patientId);
-        if (doctor is null || patient is null)
-            return (false, false, MapDoctor(doctor), MapPatient(patient));
+        var doctorEntity = await doctorRepo.GetByIdAsync(doctorId);
+        var patientEntity = await patientRepo.GetByIdAsync(patientId);
+        if (doctorEntity is null || patientEntity is null)
+            return (false, false, MapDoctor(doctorEntity), MapPatient(patientEntity));
 
-        var exists = await linkRepo.ExistsAsync(doctorId, patientId);
-        if (exists)
-            return (true, true, MapDoctor(doctor), MapPatient(patient));
+        var linkExists = await linkRepo.ExistsAsync(doctorId, patientId);
+        if (linkExists)
+            return (true, true, MapDoctor(doctorEntity), MapPatient(patientEntity));
 
         await linkRepo.AddAsync(doctorId, patientId);
-        return (true, false, MapDoctor(doctor), MapPatient(patient));
+        return (true, false, MapDoctor(doctorEntity), MapPatient(patientEntity));
     }
 
+    /// <summary>
+    /// Unlinks a patient from a doctor.
+    /// </summary>
+    /// <param name="doctorId">The doctor identifier.</param>
+    /// <param name="patientId">The patient identifier.</param>
+    /// <returns>
+    /// A tuple indicating whether an existing link was removed (<c>found</c>) and the projected doctor and patient DTOs.
+    /// </returns>
     public async Task<(bool found, DoctorDto? doctor, PatientDto? patient)> UnlinkPatientAsync(int doctorId, int patientId)
     {
         // Fetch the entities up front to return them even after unlink
-        var doctor = await doctorRepo.GetByIdAsync(doctorId);
-        var patient = await patientRepo.GetByIdAsync(patientId);
+        var doctorEntity = await doctorRepo.GetByIdAsync(doctorId);
+        var patientEntity = await patientRepo.GetByIdAsync(patientId);
         var removed = await linkRepo.RemoveAsync(doctorId, patientId);
         return removed
-            ? (true, MapDoctor(doctor), MapPatient(patient))
-            : (false, MapDoctor(doctor), MapPatient(patient));
+            ? (true, MapDoctor(doctorEntity), MapPatient(patientEntity))
+            : (false, MapDoctor(doctorEntity), MapPatient(patientEntity));
     }
 
     private static DoctorDto? MapDoctor(Doctor? d)

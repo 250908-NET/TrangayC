@@ -36,6 +36,34 @@ A minimal, modern .NET 9 Web API for managing Doctors, Patients, and their many-
   - `Repositories/`, `Services/`
   - `TestUtilities/` – `TestDbFactory`, `RepositoryTestBase` (Sqlite in-memory)
 
+## Entity Relationship Diagram (ERD)
+
+```mermaid
+erDiagram
+    Doctor ||--o{ DoctorPatient : has
+    Patient ||--o{ DoctorPatient : has
+
+    Doctor {
+        int Id PK
+        string FirstName
+        string LastName
+        string Specialty
+    }
+
+    Patient {
+        int Id PK
+        string FirstName
+        string LastName
+    }
+
+    DoctorPatient {
+        int DoctorId PK, FK
+        int PatientId PK, FK
+    }
+```
+
+The `DoctorPatient` join table models the many-to-many relationship with a composite primary key `(DoctorId, PatientId)`.
+
 ## Getting started
 
 - Prerequisites:

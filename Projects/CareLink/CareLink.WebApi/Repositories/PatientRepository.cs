@@ -39,7 +39,10 @@ public class PatientRepository(CareLinkDbContext db) : IPatientRepository
     /// <param name="id">The patient identifier.</param>
     /// <returns>The patient if found; otherwise null.</returns>
     public Task<Patient?> GetByIdAsync(int id)
-        => db.Patients.FirstOrDefaultAsync(d => d.Id == id);
+        => db.Patients
+            .Include(p => p.DoctorPatients)
+                .ThenInclude(dp => dp.Doctor)
+            .FirstOrDefaultAsync(p => p.Id == id);
 
     /// <summary>
     /// Deletes a patient by identifier, if present.
@@ -55,3 +58,4 @@ public class PatientRepository(CareLinkDbContext db) : IPatientRepository
         return true;
     }
 }
+

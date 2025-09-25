@@ -47,12 +47,33 @@ public class PatientService(IPatientRepository repo) : IPatientService
     }
 
     /// <summary>
-    /// Retrieves a patient by identifier.
+    /// Retrieves a patient by identifier, projecting related doctors for response shaping.
     /// </summary>
     /// <param name="id">The patient identifier.</param>
-    /// <returns>The patient if found; otherwise null.</returns>
-    public Task<Patient?> GetByIdAsync(int id)
-        => repo.GetByIdAsync(id);
+    /// <returns>An anonymous object with patient details and doctors if found; otherwise null.</returns>
+    public async Task<object?> GetByIdAsync(int id)
+    {
+        var patientEntity = await repo.GetByIdAsync(id);
+        if (patientEntity is null) return null;
+
+        var projected = new
+        {
+            patientEntity.Id,
+            patientEntity.FirstName,
+            patientEntity.LastName,
+            doctors = patientEntity.DoctorPatients
+                .Where(dp => dp.Doctor != null)
+                .Select(dp => new
+                {
+                    dp.Doctor!.Id,
+                    dp.Doctor!.FirstName,
+                    dp.Doctor!.LastName,
+                    dp.Doctor!.Specialty
+                }).ToList()
+        } as object;
+
+        return projected;
+    }
 
     /// <summary>
     /// Deletes a patient by identifier.
@@ -61,3 +82,4 @@ public class PatientService(IPatientRepository repo) : IPatientService
     /// <returns>True if a record was deleted; otherwise false.</returns>
     public Task<bool> DeleteAsync(int id) => repo.DeleteAsync(id);
 }
+

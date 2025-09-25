@@ -6,6 +6,6 @@ public interface IDoctorService
 {
     Task<Doctor> CreateAsync(Doctor doctor);
     Task<List<object>> GetAllAsync();
-    Task<Doctor?> GetByIdAsync(int id);
+    Task<object?> GetByIdAsync(int id);
     Task<bool> DeleteAsync(int id);
 }

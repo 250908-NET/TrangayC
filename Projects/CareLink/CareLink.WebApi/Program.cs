@@ -142,7 +142,7 @@ doctors.MapDelete("/{doctorId:int}/patients/{patientId:int}", async (int doctorI
 patients.MapPost("/{patientId:int}/doctors/{doctorId:int}", async (int patientId, int doctorId, IDoctorPatientService linkService) =>
 {
     var result = await linkService.LinkPatientAsync(doctorId, patientId);
-    var data = new { doctor = result.doctor, patient = result.patient };
+    var data = new { patient = result.patient, doctor = result.doctor };
     if (!result.found)
         return Results.NotFound(ApiResponseHelper.Error("Doctor or patient not found"));
 
@@ -157,7 +157,7 @@ patients.MapDelete("/{patientId:int}/doctors/{doctorId:int}", async (int patient
     var result = await linkService.UnlinkPatientAsync(doctorId, patientId);
     if (!result.found) return Results.NotFound(ApiResponseHelper.Error("Patient to doctor link not found"));
 
-    var deletedData = new { doctor = result.doctor, patient = result.patient };
+    var deletedData = new { patient = result.patient, doctor = result.doctor };
     return Results.Ok(ApiResponseHelper.Success(deletedData, "Doctor unlinked from patient successfully"));
 });
 

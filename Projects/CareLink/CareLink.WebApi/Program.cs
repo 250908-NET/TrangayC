@@ -38,84 +38,116 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var doctors = app.MapGroup("/api/doctors");
+/// <summary>
+/// Doctor endpoints (CRUD and relationship links under doctors).
+/// Base route: /api/doctors
+/// </summary>
+var doctorRoutes = app.MapGroup("/api/doctors");
 
-doctors.MapGet("", async (IDoctorService service) =>
+/// <summary>
+/// Retrieves all doctors with related patients (list).
+/// </summary>
+doctorRoutes.MapGet("", async (IDoctorService doctorService) =>
 {
-    var list = await service.GetAllAsync();
-    return Results.Ok(ApiResponseHelper.Success(list, "Doctors retrieved successfully"));
+    var doctorList = await doctorService.GetAllAsync();
+    return Results.Ok(ApiResponseHelper.Success(doctorList, "Doctors retrieved successfully"));
 });
 
-doctors.MapGet("/{id:int}", async (int id, IDoctorService service) =>
+/// <summary>
+/// Retrieves a specific doctor by identifier.
+/// </summary>
+doctorRoutes.MapGet("/{id:int}", async (int id, IDoctorService doctorService) =>
 {
-    var item = await service.GetByIdAsync(id);
-    return item is null
+    var doctorItem = await doctorService.GetByIdAsync(id);
+    return doctorItem is null
         ? Results.NotFound(ApiResponseHelper.Error("Doctor not found"))
-        : Results.Ok(ApiResponseHelper.Success(item, "Doctor retrieved successfully"));
+        : Results.Ok(ApiResponseHelper.Success(doctorItem, "Doctor retrieved successfully"));
 });
 
-doctors.MapPost("", async (Doctor doctor, IDoctorService service) =>
+/// <summary>
+/// Creates a new doctor.
+/// </summary>
+doctorRoutes.MapPost("", async (Doctor doctor, IDoctorService doctorService) =>
 {
     var (isValid, errors) = BasicModelValidator.Validate(doctor);
     if (!isValid)
         return Results.BadRequest(ApiResponseHelper.Error(errors));
 
-    var created = await service.CreateAsync(doctor);
-    return Results.Created($"/api/doctors/{created.Id}", ApiResponseHelper.Success(created, "Doctor created successfully"));
+    var createdDoctor = await doctorService.CreateAsync(doctor);
+    return Results.Created($"/api/doctors/{createdDoctor.Id}", ApiResponseHelper.Success(createdDoctor, "Doctor created successfully"));
 });
 
-doctors.MapDelete("/{id:int}", async (int id, IDoctorService service) =>
+/// <summary>
+/// Deletes a doctor by identifier.
+/// </summary>
+doctorRoutes.MapDelete("/{id:int}", async (int id, IDoctorService doctorService) =>
 {
-    var existing = await service.GetByIdAsync(id);
-    if (existing is null)
+    var existingDoctor = await doctorService.GetByIdAsync(id);
+    if (existingDoctor is null)
         return Results.NotFound(ApiResponseHelper.Error("Doctor not found"));
 
-    var deleted = await service.DeleteAsync(id);
-    return deleted
-        ? Results.Ok(ApiResponseHelper.Success(existing, "Doctor deleted successfully"))
+    var doctorDeleted = await doctorService.DeleteAsync(id);
+    return doctorDeleted
+        ? Results.Ok(ApiResponseHelper.Success(existingDoctor, "Doctor deleted successfully"))
         : Results.BadRequest(ApiResponseHelper.Error("Failed to delete doctor"));
 });
 
-var patients = app.MapGroup("/api/patients");
+/// <summary>
+/// Patient endpoints (CRUD and relationship links under patients).
+/// Base route: /api/patients
+/// </summary>
+var patientRoutes = app.MapGroup("/api/patients");
 
-patients.MapGet("", async (IPatientService service) =>
+/// <summary>
+/// Retrieves all patients with related doctors (list).     
+/// </summary>
+patientRoutes.MapGet("", async (IPatientService patientService) =>
 {
-    var list = await service.GetAllAsync();
-    return Results.Ok(ApiResponseHelper.Success(list, "Patients retrieved successfully"));
+    var patientList = await patientService.GetAllAsync();
+    return Results.Ok(ApiResponseHelper.Success(patientList, "Patients retrieved successfully"));
 });
 
-patients.MapGet("/{id:int}", async (int id, IPatientService service) =>
+/// <summary>
+/// Retrieves a specific patient by identifier.
+/// </summary>
+patientRoutes.MapGet("/{id:int}", async (int id, IPatientService patientService) =>
 {
-    var item = await service.GetByIdAsync(id);
-    return item is null
+    var patientItem = await patientService.GetByIdAsync(id);
+    return patientItem is null
         ? Results.NotFound(ApiResponseHelper.Error("Patient not found"))
-        : Results.Ok(ApiResponseHelper.Success(item, "Patient retrieved successfully"));
+        : Results.Ok(ApiResponseHelper.Success(patientItem, "Patient retrieved successfully"));
 });
 
-patients.MapPost("", async (Patient patient, IPatientService service) =>
+/// <summary>
+/// Creates a new patient.
+/// </summary>
+patientRoutes.MapPost("", async (Patient patient, IPatientService patientService) =>
 {
     var (isValid, errors) = BasicModelValidator.Validate(patient);
     if (!isValid)
         return Results.BadRequest(ApiResponseHelper.Error(errors));
 
-    var created = await service.CreateAsync(patient);
-    return Results.Created($"/api/patients/{created.Id}", ApiResponseHelper.Success(created, "Patient created successfully"));
+    var createdPatient = await patientService.CreateAsync(patient);
+    return Results.Created($"/api/patients/{createdPatient.Id}", ApiResponseHelper.Success(createdPatient, "Patient created successfully"));
 });
 
-patients.MapDelete("/{id:int}", async (int id, IPatientService service) =>
+/// <summary>
+/// Deletes a patient by identifier.
+/// </summary>
+patientRoutes.MapDelete("/{id:int}", async (int id, IPatientService patientService) =>
 {
-    var existing = await service.GetByIdAsync(id);
-    if (existing is null)
+    var existingPatient = await patientService.GetByIdAsync(id);
+    if (existingPatient is null)
         return Results.NotFound(ApiResponseHelper.Error("Patient not found"));
 
-    var deleted = await service.DeleteAsync(id);
-    return deleted
-        ? Results.Ok(ApiResponseHelper.Success(existing, "Patient deleted successfully"))
+    var patientDeleted = await patientService.DeleteAsync(id);
+    return patientDeleted
+        ? Results.Ok(ApiResponseHelper.Success(existingPatient, "Patient deleted successfully"))
         : Results.BadRequest(ApiResponseHelper.Error("Failed to delete patient"));
 });
 
-// Link a patient to a doctor
-doctors.MapPost("/{doctorId:int}/patients/{patientId:int}", async (int doctorId, int patientId, IDoctorPatientService linkService) =>
+// Link a patient to a doctor (under doctors)
+doctorRoutes.MapPost("/{doctorId:int}/patients/{patientId:int}", async (int doctorId, int patientId, IDoctorPatientService linkService) =>
 {
     var result = await linkService.LinkPatientAsync(doctorId, patientId);
     var data = new { doctor = result.doctor, patient = result.patient };
@@ -128,8 +160,8 @@ doctors.MapPost("/{doctorId:int}/patients/{patientId:int}", async (int doctorId,
     return Results.Created($"/api/doctors/{doctorId}/patients/{patientId}", ApiResponseHelper.Success(data, "Patient linked to doctor successfully"));
 });
 
-// Unlink a patient from a doctor
-doctors.MapDelete("/{doctorId:int}/patients/{patientId:int}", async (int doctorId, int patientId, IDoctorPatientService linkService) =>
+// Unlink a patient from a doctor (under doctors)
+doctorRoutes.MapDelete("/{doctorId:int}/patients/{patientId:int}", async (int doctorId, int patientId, IDoctorPatientService linkService) =>
 {
     var result = await linkService.UnlinkPatientAsync(doctorId, patientId);
     if (!result.found) return Results.NotFound(ApiResponseHelper.Error("Doctor to patient link not found"));
@@ -139,7 +171,7 @@ doctors.MapDelete("/{doctorId:int}/patients/{patientId:int}", async (int doctorI
 });
 
 // Mirror routes under patients
-patients.MapPost("/{patientId:int}/doctors/{doctorId:int}", async (int patientId, int doctorId, IDoctorPatientService linkService) =>
+patientRoutes.MapPost("/{patientId:int}/doctors/{doctorId:int}", async (int patientId, int doctorId, IDoctorPatientService linkService) =>
 {
     var result = await linkService.LinkPatientAsync(doctorId, patientId);
     var data = new { patient = result.patient, doctor = result.doctor };
@@ -152,7 +184,8 @@ patients.MapPost("/{patientId:int}/doctors/{doctorId:int}", async (int patientId
     return Results.Created($"/api/patients/{patientId}/doctors/{doctorId}", ApiResponseHelper.Success(data, "Doctor linked to patient successfully"));
 });
 
-patients.MapDelete("/{patientId:int}/doctors/{doctorId:int}", async (int patientId, int doctorId, IDoctorPatientService linkService) =>
+// Mirror unlink route under patients
+patientRoutes.MapDelete("/{patientId:int}/doctors/{doctorId:int}", async (int patientId, int doctorId, IDoctorPatientService linkService) =>
 {
     var result = await linkService.UnlinkPatientAsync(doctorId, patientId);
     if (!result.found) return Results.NotFound(ApiResponseHelper.Error("Patient to doctor link not found"));

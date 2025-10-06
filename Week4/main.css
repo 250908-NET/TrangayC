@@ -1,21 +1,27 @@
 /* Style your About Me page using CSS. Your styling should demonstrate your understanding of the Box Model. You should use a flexbox on your list of hobbies or favorite things to list them horizontally instead of vertically. Upload your changes to GitHub and merge to your main branch.*/
 * {
-    margin: 10px; 
-    margin: 20px 0;  }
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    margin: 30px;
+    max-width: 600px;
+}
+
 p {
-    max-width: 500px;
-    font-size: 16px;
-    line-height: 1.25;
+  font-size: 16px;
+  line-height: 1.25;
 }
 
 h2 {
-    font-size: 24px;
+  font-size: 24px;
 }
 
 ul {
-    display: flex;
-    gap: 20px;
+  display: flex;
+  gap: 20px;
 }
 img {
-    width: 200px;
+  width: 200px;
 }

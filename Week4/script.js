@@ -7,7 +7,7 @@ addItem("Playing video games");
 addItem("Watching movies or anime");
 addItem("Working out");
 
-function updateListFunction() {
+function updateList() {
   const itemInput = document.getElementById("itemInput");
   const newItem = itemInput.value;
   addItem(newItem);
